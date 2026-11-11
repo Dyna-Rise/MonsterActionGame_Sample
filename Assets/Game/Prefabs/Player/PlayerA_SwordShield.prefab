@@ -1,0 +1,321 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2913509095495811990
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7891385576528735841}
+  - component: {fileID: 4934289694647360575}
+  - component: {fileID: 7424618051939967393}
+  - component: {fileID: 9135976360675859354}
+  m_Layer: 0
+  m_Name: PlayerA_SwordShield
+  m_TagString: Player
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7891385576528735841
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2913509095495811990}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1352632131663365805}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &4934289694647360575
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2913509095495811990}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.8
+  m_Radius: 0.3
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.03
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.9, z: 0}
+--- !u!114 &7424618051939967393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2913509095495811990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b37afe2b4420d24fa02bf75633e052b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterAction.Battle.Player.PlayerInputReader
+  actions: {fileID: 0}
+  actionMapName: Player
+  moveActionName: Move
+  lookActionName: Look
+  attackActionName: Attack
+  dodgeActionName: Jump
+  sprintActionName: Sprint
+  lockOnActionName: LockOn
+  focusActionName: Focus
+  bufferTime: 0.3
+--- !u!114 &9135976360675859354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2913509095495811990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a60b92299fcdf3e4f955ec898381c7a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterAction.Battle.Player.PlayerTypeA_SwordShield
+  maxHp: 150
+  moveSpeed: 5
+  turnSpeed: 720
+  gravity: -25
+  maxStamina: 100
+  sprintSpeed: 8
+  sprintStaminaPerSecond: 20
+  staminaRegenPerSecond: 30
+  staminaRegenDelay: 0.6
+  exhaustedRecoverRate: 0.3
+  dodgeStaminaCost: 0
+  faceDodgeDirection: 1
+  dodgeDistance: 6
+  dodgeDuration: 0.97222227
+  dodgeSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  dodgeInvincibleStart: 0.05
+  dodgeInvincibleEnd: 0.53472227
+  disableDuringMixamoMotion:
+  - {fileID: 346845400790487441}
+  dodgeRecoverRate: 0.8
+  lockOnMaxDistance: 40
+  focusMoveSpeed: 4.5
+  aimMaxDistance: 100
+  aimLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  hitStunDuration: 0.6
+  hitInvincibleTime: 0.5
+  downDuration: 1.6
+  downKnockbackTime: 0.4
+  downMinKnockback: 2
+  downRecoverTime: 0.9
+  getUpDuration: 0.8
+  cameraTransform: {fileID: 0}
+  animator: {fileID: 0}
+  weapon: {fileID: 3782384434200313100}
+  combo:
+  - animState: Attack1
+    clipLength: 1.1
+    animSpeed: 1.2
+    damage: 12
+    causesFlinch: 0
+    hitStart: 0.25
+    hitEnd: 0.5
+    comboInputStart: 0.1
+    comboNext: 0.5
+    dodgeCancel: 0.45
+    moveCancel: 0.8
+    lungeDistance: 0.5
+    lungeStart: 0.1
+    lungeEnd: 0.35
+  - animState: Attack2
+    clipLength: 1.1
+    animSpeed: 1.2
+    damage: 14
+    causesFlinch: 0
+    hitStart: 0.25
+    hitEnd: 0.5
+    comboInputStart: 0.1
+    comboNext: 0.5
+    dodgeCancel: 0.45
+    moveCancel: 0.8
+    lungeDistance: 0.5
+    lungeStart: 0.1
+    lungeEnd: 0.35
+  - animState: Attack3
+    clipLength: 0.90000004
+    animSpeed: 1.1
+    damage: 18
+    causesFlinch: 1
+    hitStart: 0.3
+    hitEnd: 0.55
+    comboInputStart: 0.2
+    comboNext: 0.65
+    dodgeCancel: 0.55
+    moveCancel: 0.85
+    lungeDistance: 0.8
+    lungeStart: 0.15
+    lungeEnd: 0.4
+  loopCombo: 1
+  turnWindow: 0.15
+  guardHoldTime: 0.2
+  guardAngle: 150
+  guardDamageRate: 0.15
+  guardStaminaPerDamage: 1
+  guardPushDistance: 0.4
+--- !u!1001 &3037960250437281597
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7891385576528735841}
+    m_Modifications:
+    - target: {fileID: 3722035622965246762, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7929906376812067818, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: c62947d187b97114f930bdbe6aa7b1d1, type: 2}
+    - target: {fileID: 7929906376812067818, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8814046527659193045, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3782384434200313100}
+  m_SourcePrefab: {fileID: 100100000, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+--- !u!114 &346845400790487441 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3384805646930704044, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+  m_PrefabInstance: {fileID: 3037960250437281597}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd95fd526fbaddd4e96feb1b5b051f7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1352632131663365805 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4101797402397188496, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+  m_PrefabInstance: {fileID: 3037960250437281597}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5798604829445461480 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8814046527659193045, guid: e76e3a3af8c9c5e42968c424e2b49ef2, type: 3}
+  m_PrefabInstance: {fileID: 3037960250437281597}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3782384434200313100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5798604829445461480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b09111d30809f14880a78ff7833ff82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterAction.Battle.Player.WeaponHitbox
+  pointA: {x: -0.00022512549, y: -0.23242033, z: -0.00000004970202}
+  pointB: {x: -0.00022510572, y: 1.0479577, z: 0.000000036153835}
+  radius: 0.15364535
+  hitLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
