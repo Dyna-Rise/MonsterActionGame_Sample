@@ -37,12 +37,20 @@ namespace MonsterAction.Battle.Player
         private bool hasPrev;
 
         /// <summary>持ち主を設定（持ち主自身の Collider には当たらない）</summary>
-        public void SetOwner(Transform ownerRoot) => owner = ownerRoot;
+        public void SetOwner(Transform ownerRoot)
+        {
+            owner = ownerRoot;
+            ownerPlayer = ownerRoot != null ? ownerRoot.GetComponentInParent<PlayerBattleController>() : null;
+        }
 
-        /// <summary>新しい振りを始める。ヒット済みリストをリセットする</summary>
+        private PlayerBattleController ownerPlayer;
+
+        /// <summary>新しい振りを始める。ヒット済みリストをリセットする（攻撃力アップのスキル倍率は自動で掛かる）</summary>
         public void BeginSwing(float damage, bool causesFlinch, float knockback = 0f)
         {
             alreadyHit.Clear();
+            if (ownerPlayer == null && owner == null) ownerPlayer = GetComponentInParent<PlayerBattleController>();
+            if (ownerPlayer != null) damage *= ownerPlayer.AttackMultiplier;
             template = new DamageInfo(damage, Vector3.zero, Vector3.zero,
                                       owner != null ? owner.gameObject : gameObject, causesFlinch, knockback);
         }

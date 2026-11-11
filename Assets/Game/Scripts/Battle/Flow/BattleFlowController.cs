@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using MonsterAction.Battle.Player;
 using MonsterAction.Battle.UI;
+using MonsterAction.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -12,7 +13,7 @@ namespace MonsterAction.Battle.Flow
     /// Battle シーンの進行役（シーンに1つ）。
     ///
     ///   プレイヤー死亡 → 少し待つ → 「QUEST FAILED」表示 → 数秒後に Home シーンへ
-    ///   ボス討伐       → 少し待つ → 「QUEST CLEAR」表示  → 数秒後に Home シーンへ
+    ///   ボス討伐       → 報酬金を所持金に追加 → 少し待つ → 「QUEST CLEAR」＋報酬表示 → 数秒後に Home シーンへ
     ///
     /// 【Boss 担当の人へ】
     /// ボスの HP が 0 になったら BattleFlowController.Instance.ClearQuest() を呼んでください。
@@ -87,11 +88,22 @@ namespace MonsterAction.Battle.Flow
             StartCoroutine(EndRoutine(cleared: false));
         }
 
-        /// <summary>クエストクリア（ボス討伐時にボス側から呼ぶ）</summary>
-        public void ClearQuest()
+        /// <summary>このクエストでもらった報酬金</summary>
+        public int EarnedReward { get; private set; }
+
+        /// <summary>
+        /// クエストクリア（ボス討伐時に BossBase が自動で呼ぶ）。
+        /// 報酬金はボスの Reward Money。テスト用に reward を直接指定することもできる
+        /// </summary>
+        public void ClearQuest(int reward = -1)
         {
             if (CurrentPhase != Phase.Playing) return;
             CurrentPhase = Phase.Cleared;
+
+            // 報酬金を所持金に足す（Home に戻っても残る）
+            EarnedReward = reward >= 0 ? reward : (Boss.BossBase.Active != null ? Boss.BossBase.Active.RewardMoney : 0);
+            GameData.AddMoney(EarnedReward);
+
             QuestCleared?.Invoke();
             StartCoroutine(EndRoutine(cleared: true));
         }
@@ -106,7 +118,7 @@ namespace MonsterAction.Battle.Flow
 
             if (resultUI != null)
             {
-                if (cleared) resultUI.ShowCleared(returnDelay);
+                if (cleared) resultUI.ShowCleared(returnDelay, EarnedReward, GameData.Money);
                 else resultUI.ShowFailed(returnDelay);
             }
 

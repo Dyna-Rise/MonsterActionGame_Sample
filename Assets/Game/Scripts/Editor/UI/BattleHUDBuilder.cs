@@ -18,6 +18,7 @@ namespace MonsterAction.EditorTools
     ///   │ ├ HPBar            Back(Image) / Fill(Image: Filled)
     ///   │ └ StaminaBar       Back(Image) / Fill(Image: Filled)
     ///   ├ BossBar            ボスの名前と HP（ボスがいるときだけ表示）
+    ///   ├ ItemSlot           右下：回復薬の残り数
     ///   ├ Reticle            集中モードの照準（普段は非表示）
     ///   ├ LockOnMarker       ロックオンマーカー（普段は非表示）
     ///   └ ResultPanel        QUEST FAILED / CLEAR（CanvasGroup で普段は透明）
@@ -55,6 +56,7 @@ namespace MonsterAction.EditorTools
         [MenuItem("MonsterAction/Battle/Setup HUD + BattleFlow In Scene", priority = 1)]
         public static void SetupSceneMenu()
         {
+            ItemSetupTool.EnsureDefaultItems(); // 回復薬のアセット
             EnsureHUDAndFlowInScene();
             EnsureScenesInBuild();
         }
@@ -102,7 +104,68 @@ namespace MonsterAction.EditorTools
                 Undo.RegisterCreatedObjectUndo(go, "Create HitEffects");
             }
 
+            EnsurePlayerSpawner();
+            EnsureBossSpawner();
             EditorSceneManager.MarkSceneDirty(flow.gameObject.scene);
+        }
+
+        /// <summary>Home の出撃画面で選んだボスに差し替える BattleBossSpawner を置く</summary>
+        public static void EnsureBossSpawner()
+        {
+            var spawner = Object.FindFirstObjectByType<MonsterAction.Battle.Boss.BattleBossSpawner>();
+            if (spawner == null)
+            {
+                var go = new GameObject("BossSpawner", typeof(MonsterAction.Battle.Boss.BattleBossSpawner));
+                Undo.RegisterCreatedObjectUndo(go, "Create BossSpawner");
+                spawner = go.GetComponent<MonsterAction.Battle.Boss.BattleBossSpawner>();
+                // シーンにボスがいれば、その位置に（ボスがいないときの出現位置になる）
+                var boss = Object.FindFirstObjectByType<MonsterAction.Battle.Boss.BossBase>(FindObjectsInactive.Include);
+                if (boss != null) go.transform.SetPositionAndRotation(boss.transform.position, boss.transform.rotation);
+            }
+
+            // 一覧の Prefab が空なら、Prefabs/Boss/Boss_<ID>.prefab を探して入れる
+            var so = new SerializedObject(spawner);
+            var bosses = so.FindProperty("bosses");
+            for (int i = 0; i < bosses.arraySize; i++)
+            {
+                var e = bosses.GetArrayElementAtIndex(i);
+                var prefabProp = e.FindPropertyRelative("prefab");
+                if (prefabProp.objectReferenceValue != null) continue;
+                string path = "Assets/Game/Prefabs/Boss/Boss_" + e.FindPropertyRelative("bossId").stringValue + ".prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null) prefabProp.objectReferenceValue = prefab;
+            }
+            so.ApplyModifiedProperties();
+        }
+
+        /// <summary>Home で選んだタイプの Player に差し替える BattlePlayerSpawner を置く</summary>
+        public static void EnsurePlayerSpawner()
+        {
+            var spawner = Object.FindFirstObjectByType<MonsterAction.Battle.Player.BattlePlayerSpawner>();
+            if (spawner == null)
+            {
+                var go = new GameObject("PlayerSpawner", typeof(MonsterAction.Battle.Player.BattlePlayerSpawner));
+                Undo.RegisterCreatedObjectUndo(go, "Create PlayerSpawner");
+                spawner = go.GetComponent<MonsterAction.Battle.Player.BattlePlayerSpawner>();
+            }
+
+            // 一覧の Prefab が空なら、作ってある Player の Prefab を入れる
+            var so = new SerializedObject(spawner);
+            var types = so.FindProperty("types");
+            for (int i = 0; i < types.arraySize; i++)
+            {
+                var e = types.GetArrayElementAtIndex(i);
+                var prefabProp = e.FindPropertyRelative("prefab");
+                if (prefabProp.objectReferenceValue != null) continue;
+                string path = e.FindPropertyRelative("typeId").stringValue switch
+                {
+                    "SwordShield" => PlayerASetupTool.PrefabPath,
+                    "Bow" => PlayerBSetupTool.PrefabPath,
+                    _ => null,
+                };
+                if (path != null) prefabProp.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            so.ApplyModifiedProperties();
         }
 
         /// <summary>Home と Battle をビルドのシーン一覧に入れる（SceneManager.LoadScene に必要）</summary>
@@ -163,6 +226,23 @@ namespace MonsterAction.EditorTools
                 bossSo.FindProperty("hpFill").objectReferenceValue = bossFill;
                 bossSo.ApplyModifiedPropertiesWithoutUndo();
 
+                // ---- アイテム（右下）：△で使う回復薬の残り数 ----
+                var bottomRight = (new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f));
+                var slotBack = CreateImage("ItemSlot", root.transform, bottomRight, new Vector2(-40f, 40f), new Vector2(280f, 84f), BackColor);
+                var slotGroup = slotBack.gameObject.AddComponent<CanvasGroup>();
+                var slotIcon = CreateImage("Icon", slotBack.rectTransform, LeftCenter, new Vector2(12f, 0f), new Vector2(60f, 60f), new Color(0.35f, 0.85f, 0.45f));
+                slotIcon.sprite = sprite;
+                var slotName = CreateText("Name", slotBack.rectTransform, new Vector2(30f, 18f), new Vector2(180f, 30f), font, 22, FontStyle.Normal, "回復薬");
+                var slotCount = CreateText("Count", slotBack.rectTransform, new Vector2(30f, -14f), new Vector2(180f, 40f), font, 34, FontStyle.Bold, "× 2");
+                CreateText("Button", slotBack.rectTransform, new Vector2(0f, -56f), new Vector2(280f, 24f), font, 18, FontStyle.Normal, "△ / R で使う");
+                var slotHud = slotBack.gameObject.AddComponent<ItemSlotHUD>();
+                var slotSo = new SerializedObject(slotHud);
+                slotSo.FindProperty("icon").objectReferenceValue = slotIcon;
+                slotSo.FindProperty("nameText").objectReferenceValue = slotName;
+                slotSo.FindProperty("countText").objectReferenceValue = slotCount;
+                slotSo.FindProperty("group").objectReferenceValue = slotGroup;
+                slotSo.ApplyModifiedPropertiesWithoutUndo();
+
                 // ---- 照準（画面中央の十字） ----
                 var reticle = CreateRect("Reticle", root.transform, Center, Vector2.zero, new Vector2(40f, 40f));
                 CreateImage("Dot", reticle, Center, Vector2.zero, new Vector2(4f, 4f), ReticleColor);
@@ -184,11 +264,14 @@ namespace MonsterAction.EditorTools
                 panel.gameObject.AddComponent<CanvasGroup>();
                 var resultUI = panel.gameObject.AddComponent<BattleResultUI>();
                 var title = CreateText("Title", panel.rectTransform, new Vector2(0f, 40f), new Vector2(1400f, 160f), font, 110, FontStyle.Bold, "QUEST FAILED");
-                var message = CreateText("Message", panel.rectTransform, new Vector2(0f, -70f), new Vector2(1400f, 60f), font, 36, FontStyle.Normal, "5 秒後に拠点へ戻ります");
+                var reward = CreateText("Reward", panel.rectTransform, new Vector2(0f, -60f), new Vector2(1400f, 60f), font, 40, FontStyle.Bold, "報酬金 1000 G");
+                reward.color = new Color(1f, 0.9f, 0.5f);
+                var message = CreateText("Message", panel.rectTransform, new Vector2(0f, -130f), new Vector2(1400f, 60f), font, 32, FontStyle.Normal, "5 秒後に拠点へ戻ります");
 
                 var resultSo = new SerializedObject(resultUI);
                 resultSo.FindProperty("titleText").objectReferenceValue = title;
                 resultSo.FindProperty("messageText").objectReferenceValue = message;
+                resultSo.FindProperty("rewardText").objectReferenceValue = reward;
                 resultSo.ApplyModifiedPropertiesWithoutUndo();
 
                 // ---- HUD スクリプトに参照を入れる ----
@@ -218,6 +301,7 @@ namespace MonsterAction.EditorTools
         private static readonly (Vector2 min, Vector2 max, Vector2 pivot) TopLeft = (new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f));
         private static readonly (Vector2 min, Vector2 max, Vector2 pivot) Center = (new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
         private static readonly (Vector2 min, Vector2 max, Vector2 pivot) Stretch = (Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f));
+        private static readonly (Vector2 min, Vector2 max, Vector2 pivot) LeftCenter = (new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f));
 
         private static RectTransform CreateRect(string name, Transform parent, (Vector2 min, Vector2 max, Vector2 pivot) anchor,
                                                 Vector2 pos, Vector2 size)

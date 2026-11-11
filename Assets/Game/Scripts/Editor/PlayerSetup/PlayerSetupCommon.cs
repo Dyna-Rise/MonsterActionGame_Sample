@@ -175,6 +175,8 @@ namespace MonsterAction.EditorTools
             // ダウン：専用モーションが無いので倒れるモーションで代用。
             // 起き上がり（GetUp）ステートは、モーションを手に入れたら追加する（無ければスクリプトがそのまま立たせる）
             sm.AddState("KnockDown").motion = death;
+            // アイテム使用：専用モーションが無いので「背中に手を伸ばす」動きで代用
+            sm.AddState("UseItem").motion = LoadKevinClip("Male/Misc/Unsheathe/HumanM@UnsheatheBack01_R.fbx");
 
             // --- Hands レイヤー（武器を握る手の形を常に上書き） ---
             var handsSm = new AnimatorStateMachine { name = "Hands", hideFlags = HideFlags.HideInHierarchy };

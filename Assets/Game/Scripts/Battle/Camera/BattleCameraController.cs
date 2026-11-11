@@ -127,6 +127,12 @@ namespace MonsterAction.Battle.CameraSystem
         private void Start()
         {
             if (target == null && PlayerBattleController.Active != null) target = PlayerBattleController.Active.transform;
+            if (target == null)
+            {
+                // Home など、PlayerBattleController がいないシーン用：入力を持つキャラを探す
+                var reader = FindFirstObjectByType<PlayerInputReader>();
+                if (reader != null) target = reader.transform;
+            }
             SetTarget(target);
             if (lockCursor) SetCursorLocked(true);
         }
@@ -136,9 +142,21 @@ namespace MonsterAction.Battle.CameraSystem
             if (player != null) player.CameraResetRequested -= ResetBehindTarget;
         }
 
+        /// <summary>メニュー表示中か（カーソルを出し、視点操作を止める）</summary>
+        public bool MenuMode { get; private set; }
+        private int menuModeChangedFrame = -1;
+
+        /// <summary>メニューを開いている間は true にする（Home のショップなど）</summary>
+        public void SetMenuMode(bool on)
+        {
+            MenuMode = on;
+            menuModeChangedFrame = Time.frameCount;
+            if (lockCursor) SetCursorLocked(!on);
+        }
+
         private void Update()
         {
-            if (!lockCursor) return;
+            if (!lockCursor || MenuMode || Time.frameCount == menuModeChangedFrame) return; // メニューを閉じた Esc でカーソルを外さない
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) SetCursorLocked(false);
             else if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
                 SetCursorLocked(true);
@@ -206,7 +224,7 @@ namespace MonsterAction.Battle.CameraSystem
 
         private Vector2 ReadLook(float dt)
         {
-            if (input == null) return Vector2.zero;
+            if (input == null || MenuMode) return Vector2.zero;
             Vector2 look = input.Look;
             if (input.LookIsPointer)
                 return Cursor.lockState == CursorLockMode.Locked ? look * mouseSensitivity : Vector2.zero;

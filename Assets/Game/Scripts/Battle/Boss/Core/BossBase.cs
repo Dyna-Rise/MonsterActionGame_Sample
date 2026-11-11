@@ -44,6 +44,8 @@ namespace MonsterAction.Battle.Boss
         [SerializeField] private float maxHp = 600f;
         [Tooltip("この量のダメージがたまるとひるむ（0 ならひるまない）")]
         [SerializeField] private float flinchThreshold = 120f;
+        [Tooltip("倒したときにもらえるお金（報酬金）")]
+        [SerializeField] private int rewardMoney = 1000;
 
         [Header("攻撃の間隔")]
         [Tooltip("Rest()（攻撃後の休み）の時間の倍率。大きいほどボスの攻撃がゆっくりになる")]
@@ -82,6 +84,8 @@ namespace MonsterAction.Battle.Boss
 
         // ---- 外部（UI・GameManager）に公開するもの ----
         public string BossName => bossName;
+        /// <summary>倒したときの報酬金（BattleFlowController がクリア時に所持金へ足す）</summary>
+        public int RewardMoney => rewardMoney;
         public float MaxHp => maxHp;
         public float CurrentHp { get; private set; }
         public float HpRate => maxHp > 0f ? CurrentHp / maxHp : 0f;

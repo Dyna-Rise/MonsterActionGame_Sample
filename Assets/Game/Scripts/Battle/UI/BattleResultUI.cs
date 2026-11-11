@@ -14,6 +14,8 @@ namespace MonsterAction.Battle.UI
     {
         [SerializeField] private Text titleText;
         [SerializeField] private Text messageText;
+        [Tooltip("報酬金の表示（クリア時だけ）")]
+        [SerializeField] private Text rewardText;
         [SerializeField] private float fadeTime = 0.8f;
 
         [Header("文言と色")]
@@ -23,6 +25,8 @@ namespace MonsterAction.Battle.UI
         [SerializeField] private Color clearedColor = new Color(1f, 0.85f, 0.3f);
         [Tooltip("{0} に Home に戻るまでの秒数が入ります")]
         [SerializeField] private string returnMessage = "{0} 秒後に拠点へ戻ります";
+        [Tooltip("{0} に報酬金、{1} に所持金が入ります")]
+        [SerializeField] private string rewardMessage = "報酬金 {0} G　（所持金 {1} G）";
 
         private CanvasGroup group;
         private float returnAt;
@@ -35,11 +39,18 @@ namespace MonsterAction.Battle.UI
             group.interactable = false;
         }
 
-        public void ShowFailed(float secondsUntilReturn) => Show(failedTitle, failedColor, secondsUntilReturn);
-        public void ShowCleared(float secondsUntilReturn) => Show(clearedTitle, clearedColor, secondsUntilReturn);
+        public void ShowFailed(float secondsUntilReturn) => Show(failedTitle, failedColor, secondsUntilReturn, null);
 
-        public void Show(string title, Color color, float secondsUntilReturn)
+        public void ShowCleared(float secondsUntilReturn, int reward, int totalMoney) =>
+            Show(clearedTitle, clearedColor, secondsUntilReturn, string.Format(rewardMessage, reward, totalMoney));
+
+        public void Show(string title, Color color, float secondsUntilReturn, string reward)
         {
+            if (rewardText != null)
+            {
+                rewardText.text = reward ?? "";
+                rewardText.gameObject.SetActive(!string.IsNullOrEmpty(reward));
+            }
             if (titleText != null)
             {
                 titleText.text = title;

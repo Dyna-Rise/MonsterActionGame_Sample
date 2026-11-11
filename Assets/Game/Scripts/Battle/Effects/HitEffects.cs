@@ -35,6 +35,9 @@ namespace MonsterAction.Battle.Effects
         [SerializeField] private float playerHitShake = 0.15f;
         [SerializeField] private float knockDownShake = 0.35f;
 
+        [Header("回復")]
+        [SerializeField] private Color healColor = new Color(0.4f, 1f, 0.5f);
+
         [Header("ガード")]
         [SerializeField] private Color guardColor = new Color(0.5f, 0.85f, 1f);
         [SerializeField] private float guardShake = 0.06f;
@@ -62,9 +65,9 @@ namespace MonsterAction.Battle.Effects
         {
             if (player != PlayerBattleController.Active)
             {
-                if (player != null) { player.Damaged -= OnPlayerDamaged; player.Guarded -= OnPlayerGuarded; }
+                if (player != null) { player.Damaged -= OnPlayerDamaged; player.Guarded -= OnPlayerGuarded; player.Healed -= OnPlayerHealed; }
                 player = PlayerBattleController.Active;
-                if (player != null) { player.Damaged += OnPlayerDamaged; player.Guarded += OnPlayerGuarded; }
+                if (player != null) { player.Damaged += OnPlayerDamaged; player.Guarded += OnPlayerGuarded; player.Healed += OnPlayerHealed; }
             }
             if (boss != BossBase.Active)
             {
@@ -86,7 +89,7 @@ namespace MonsterAction.Battle.Effects
 
         private void OnDestroy()
         {
-            if (player != null) { player.Damaged -= OnPlayerDamaged; player.Guarded -= OnPlayerGuarded; }
+            if (player != null) { player.Damaged -= OnPlayerDamaged; player.Guarded -= OnPlayerGuarded; player.Healed -= OnPlayerHealed; }
             if (boss != null) boss.Damaged -= OnBossDamaged;
             if (inHitStop) Time.timeScale = 1f;
         }
@@ -119,6 +122,13 @@ namespace MonsterAction.Battle.Effects
             SpawnSparks(player.transform.position + Vector3.up * 1.1f, playerHitColor, 10, 1.2f);
             if (flash != null) flash.color = damageFlashColor;
             Shake(info.KnockDown ? knockDownShake : playerHitShake, info.KnockDown ? 0.4f : 0.25f);
+        }
+
+        private void OnPlayerHealed(float amount)
+        {
+            if (amount <= 0f) return;
+            SpawnSparks(player.transform.position + Vector3.up * 1.0f, healColor, 14, 1.3f);
+            if (showDamageNumbers) SpawnNumber(player.transform.position + Vector3.up * 2f, Mathf.RoundToInt(amount), healColor, 32);
         }
 
         private void Shake(float strength, float duration)

@@ -1,5 +1,6 @@
 using System;
 using MonsterAction.Combat;
+using MonsterAction.Data;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -39,6 +40,7 @@ namespace MonsterAction.Battle.Player
             Dodge,      // 回避ステップ
             Hit,        // 被弾ひるみ
             Down,       // ダウン（大攻撃で吹き飛んで倒れている）
+            UseItem,    // アイテム使用中（回復薬を飲んでいる）
             Dead,       // 死亡
         }
 
@@ -54,6 +56,8 @@ namespace MonsterAction.Battle.Player
         protected const string AnimStateKnockDown = "KnockDown";
         /// <summary>起き上がり。Animator に無ければ、そのまま Locomotion へ戻る</summary>
         protected const string AnimStateGetUp = "GetUp";
+        /// <summary>アイテム使用。Animator に無ければ、その場で待機</summary>
+        protected const string AnimStateUseItem = "UseItem";
         protected static readonly int AnimParamSpeed = Animator.StringToHash("Speed");
         protected static readonly int AnimParamDodgeX = Animator.StringToHash("DodgeX");
         protected static readonly int AnimParamDodgeY = Animator.StringToHash("DodgeY");
@@ -119,6 +123,10 @@ namespace MonsterAction.Battle.Player
         [Tooltip("被弾後の無敵時間（連続ヒット防止）")]
         [SerializeField] private float hitInvincibleTime = 0.5f;
 
+        [Header("アイテム（△ボタン）")]
+        [Tooltip("△で使うアイテム。空なら ID \"potion\"（回復薬）を Resources/Items から探す")]
+        [SerializeField] private ItemDefinition quickItem;
+
         [Header("ダウン（大攻撃）")]
         [Tooltip("倒れている時間（秒）。この間は無敵")]
         [SerializeField] private float downDuration = 1.6f;
@@ -177,6 +185,13 @@ namespace MonsterAction.Battle.Player
         public event Action<DamageInfo> Damaged;
         /// <summary>攻撃を防いだ（ガードなど）。エフェクトや SE を出したいとき用</summary>
         public event Action<DamageInfo> Guarded;
+        /// <summary>HP が回復した（回復量）</summary>
+        public event Action<float> Healed;
+        /// <summary>アイテムを使った（効果が出た瞬間）</summary>
+        public event Action<ItemDefinition> ItemUsed;
+
+        /// <summary>△で使うアイテム（回復薬）</summary>
+        public ItemDefinition QuickItem => quickItem;
 
         /// <summary>サブクラスが「防いだ」ことを知らせる（Damaged より先に呼ばれる）</summary>
         protected void NotifyGuarded(DamageInfo info) => Guarded?.Invoke(info);
@@ -198,6 +213,15 @@ namespace MonsterAction.Battle.Player
         private bool focusLocomotionAnim; // Animator が FocusLocomotion 側を再生中か
         private readonly RaycastHit[] aimHits = new RaycastHit[16];
 
+        /// <summary>
+        /// 攻撃力アップのスキル倍率。WeaponHitbox はこれを自動で掛けます。
+        /// 弓の矢など、WeaponHitbox を使わない攻撃は、ダメージにこれを掛けてください。
+        /// </summary>
+        public float AttackMultiplier => GameData.GetSkillMultiplier(SkillType.Attack);
+
+        /// <summary>防御力アップのスキル倍率（受けるダメージをこれで割る）</summary>
+        public float DefenseMultiplier => GameData.GetSkillMultiplier(SkillType.Defense);
+
         /// <summary>Locomotion ブレンドツリーで「ダッシュ」に当たる Speed の値（セットアップツールと合わせる）</summary>
         public const float SprintAnimBlendValue = 1.6f;
 
@@ -211,8 +235,12 @@ namespace MonsterAction.Battle.Player
             Input = GetComponent<PlayerInputReader>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
             if (animator != null) animator.applyRootMotion = false; // 移動はスクリプトで制御する
+            // Home で付けたスキル（体力アップ・スタミナアップ）
+            maxHp *= GameData.GetSkillMultiplier(SkillType.Health);
+            maxStamina *= GameData.GetSkillMultiplier(SkillType.Stamina);
             CurrentHp = maxHp;
             CurrentStamina = maxStamina;
+            if (quickItem == null) quickItem = ItemDefinition.Find(GameData.StartItemId);
             dodgeCurveArea = CalcCurveArea(dodgeSpeedCurve);
         }
 
@@ -257,6 +285,7 @@ namespace MonsterAction.Battle.Player
                 case State.Dodge: UpdateDodge(dt); break;
                 case State.Hit: UpdateHit(dt); break;
                 case State.Down: UpdateDown(dt); break;
+                case State.UseItem: UpdateUseItem(dt); break;
                 case State.Dead: break;
             }
 
@@ -494,8 +523,10 @@ namespace MonsterAction.Battle.Player
         public void Heal(float amount)
         {
             if (!IsAlive || amount <= 0f) return;
+            float before = CurrentHp;
             CurrentHp = Mathf.Min(maxHp, CurrentHp + amount);
             HealthChanged?.Invoke(CurrentHp, maxHp);
+            Healed?.Invoke(CurrentHp - before);
         }
 
         // ================================================================
@@ -559,6 +590,7 @@ namespace MonsterAction.Battle.Player
             Vector3 move = GetMoveDirection();
 
             if (Input.ConsumeDodge() && StartDodge(move)) return;
+            if (Input.ConsumeUseItem() && StartUseItem()) return;
             if (TryStartAction()) return;
 
             // 集中モードの ON/OFF に合わせて Animator のステートを切り替える
@@ -719,6 +751,43 @@ namespace MonsterAction.Battle.Player
             if (gettingUp && StateTime >= downDuration + getUpDuration) ReturnToLocomotion(0.2f);
         }
 
+        private bool itemEffectApplied;
+
+        /// <summary>アイテム使用を始める。持っていなければ false</summary>
+        private bool StartUseItem()
+        {
+            if (quickItem == null || GameData.GetCount(quickItem) <= 0) return false;
+
+            itemEffectApplied = false;
+            ChangeState(State.UseItem);
+            if (HasAnimState(AnimStateUseItem)) CrossFade(AnimStateUseItem, 0.15f);
+            else
+            {
+                focusLocomotionAnim = false;
+                CrossFade(AnimStateLocomotion, 0.15f);
+                if (animator != null) animator.SetFloat(AnimParamSpeed, 0f); // その場で待機
+            }
+            return true;
+        }
+
+        private void UpdateUseItem(float dt)
+        {
+            // 効果が出る前に回避すると、使うのをやめる（アイテムは減らない）
+            if (TryCancelIntoDodge()) return;
+
+            if (!itemEffectApplied && StateTime >= quickItem.EffectTime)
+            {
+                itemEffectApplied = true;
+                if (GameData.TryConsume(quickItem))
+                {
+                    Heal(maxHp * quickItem.HealRate);
+                    ItemUsed?.Invoke(quickItem);
+                }
+            }
+
+            if (StateTime >= quickItem.UseTime) ReturnToLocomotion(0.2f);
+        }
+
         private bool HasAnimState(string stateName) =>
             animator != null && animator.HasState(0, Animator.StringToHash(stateName));
 
@@ -741,6 +810,7 @@ namespace MonsterAction.Battle.Player
             if (!IsAlive || IsInvincible) return false;
             if (info.Attacker == gameObject) return false;
             if (!OnBeforeDamage(ref info)) return false; // ガードなどで無効化
+            info.Amount /= DefenseMultiplier;           // 防御力アップ（1.2 倍なら ダメージ ÷ 1.2）
 
             CurrentHp = Mathf.Max(0f, CurrentHp - info.Amount);
             HealthChanged?.Invoke(CurrentHp, maxHp);

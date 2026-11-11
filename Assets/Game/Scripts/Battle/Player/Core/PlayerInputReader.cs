@@ -36,6 +36,18 @@ namespace MonsterAction.Battle.Player
         [SerializeField] private string lockOnActionName = "LockOn";
         [Tooltip("集中モード（押している間）。L1 / マウス右ボタン")]
         [SerializeField] private string focusActionName = "Focus";
+        [Tooltip("アイテム使用。△ボタン / R")]
+        [SerializeField] private string useItemActionName = "UseItem";
+        [Tooltip("Home で調べる / 話しかける（キーボードの E）。□ボタンは Attack を使う")]
+        [SerializeField] private string interactActionName = "Interact";
+        private InputAction interactAction;
+
+        /// <summary>
+        /// Home 用：調べる / 話しかけるボタンをこのフレームで押したか（□ / 左クリック / E）
+        /// </summary>
+        public bool InteractPressedThisFrame =>
+            InputEnabled && ((attackAction != null && attackAction.WasPressedThisFrame()) ||
+                             (interactAction != null && interactAction.WasPressedThisFrame()));
 
         [Header("先行入力")]
         [Tooltip("ボタンを押してから何秒間その入力を覚えておくか")]
@@ -48,6 +60,7 @@ namespace MonsterAction.Battle.Player
         private InputAction sprintAction;
         private InputAction lockOnAction;
         private InputAction focusAction;
+        private InputAction useItemAction;
 
         private float lastAttackPressedTime = float.NegativeInfinity;
         private float lastDodgePressedTime = float.NegativeInfinity;
@@ -96,6 +109,9 @@ namespace MonsterAction.Battle.Player
             sprintAction = map.FindAction(sprintActionName, true);
             lockOnAction = map.FindAction(lockOnActionName, true);
             focusAction = map.FindAction(focusActionName, true);
+            useItemAction = map.FindAction(useItemActionName, true);
+            useItemAction.performed += OnUseItemPerformed;
+            interactAction = map.FindAction(interactActionName, false); // 無くてもよい
 
             attackAction.performed += OnAttackPerformed;
             dodgeAction.performed += OnDodgePerformed;
@@ -106,7 +122,18 @@ namespace MonsterAction.Battle.Player
         {
             if (attackAction != null) attackAction.performed -= OnAttackPerformed;
             if (dodgeAction != null) dodgeAction.performed -= OnDodgePerformed;
+            if (useItemAction != null) useItemAction.performed -= OnUseItemPerformed;
         }
+
+        private float lastUseItemPressedTime = float.NegativeInfinity;
+
+        private void OnUseItemPerformed(InputAction.CallbackContext _)
+        {
+            if (InputEnabled) lastUseItemPressedTime = Time.time;
+        }
+
+        /// <summary>バッファ内にアイテム使用の入力があれば true を返し、その入力を消費する</summary>
+        public bool ConsumeUseItem() => Consume(ref lastUseItemPressedTime);
 
         private void OnAttackPerformed(InputAction.CallbackContext _)
         {
@@ -129,6 +156,7 @@ namespace MonsterAction.Battle.Player
         {
             lastAttackPressedTime = float.NegativeInfinity;
             lastDodgePressedTime = float.NegativeInfinity;
+            lastUseItemPressedTime = float.NegativeInfinity;
         }
 
         private bool Consume(ref float pressedTime)

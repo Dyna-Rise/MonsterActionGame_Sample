@@ -14,7 +14,7 @@ Battle シーンのプレイヤーは **「共通部分」＋「タイプ（武�
 | 集中モード（押している間） | マウス右ボタン | L1 | 共通 |
 | 攻撃 | 左クリック | □（West） | **タイプ別** |
 | ガード（片手剣） | 左クリック長押し | □長押し | タイプA |
-| アイテム使用（予定） | E | △（North） | 共通（未実装） |
+| アイテム使用（回復薬） | R | △（North） | 共通 |
 | カーソル解除 / 再ロック | Esc / クリック | - | 共通 |
 
 - ターゲットカメラ：近くの `LockOnTarget`（ボスなど）を画面に捉え続けます。相手がいないときに押すとカメラが背後に戻ります
@@ -50,6 +50,65 @@ HUD だけを作り直す / 置くとき：`MonsterAction > Battle > Build Battl
 - テスト用キー：**F1 = 自分を倒す（失敗）、F2 = クエストクリア**（`Debug Keys` で OFF にできる）
 - カカシの `Quest Clear Damage` に値を入れると、その合計ダメージでクリアになります（ボス討伐の練習）
 - 報酬金の加算などは、Home と共有するデータを作ってから `QuestCleared` / `QuestFailed` イベントに足す予定
+
+## アイテムと所持金（Home と共有）
+| しくみ | 場所 |
+|---|---|
+| アイテムの設定（名前・値段・回復量・最大数） | `ItemDefinition`（ScriptableObject）。`Assets/Game/Resources/Items/` に置く。右クリック → Create → MonsterAction → Item |
+| 所持金・アイテムの所持数 | `GameData`（static。シーンを切り替えても残る。Play のたびに初期値：所持金 300G・回復薬 2 個） |
+
+- **回復薬**：△ / R で使う。1秒その場で使い、0.6秒で最大HPの30%回復。効果が出る前に攻撃を受けると失敗（減らない）、回避でキャンセル可
+- 右下に残り数を表示（0 個で暗くなる）。回復すると緑の火花と回復量の数字
+- **報酬金**：ボスの `Reward Money`（初期 1000G）。倒すと所持金に加算し、結果画面に「報酬金 / 所持金」を表示
+
+### Home のショップ担当向け
+```csharp
+foreach (var item in ItemDefinition.All) { /* item.DisplayName, item.Price, item.Description, item.Icon */ }
+GameData.Money                   // 所持金
+GameData.GetCount(item)          // 所持数
+GameData.TryBuy(item)            // 買う（お金不足 / 最大数なら false）
+GameData.MoneyChanged += ...     // 表示更新用イベント
+GameData.ItemCountChanged += ...
+GameData.GetSkillLevel(type)     // スキルの★（0〜3）
+GameData.TryBuySkill(type)       // ★を1つ上げる（お金不足 / 売り切れなら false）
+```
+
+## Home（村）
+`MonsterAction > Home > Setup Home Scene` を Home シーンで実行すると、全部そろいます（何度実行しても OK）。
+
+| 置かれるもの | 内容 |
+|---|---|
+| `HomePlayer` | 村を歩くだけのプレイヤー（移動・R1 で走る）|
+| カメラ | `HomeCameraController`：角度固定の見下ろし（回転しない）。`Pitch`（見下ろす角度）・`Yaw`（向き）・`Distance` で調整 |
+| ドア `Door_painted.001` | 近づくと光る → □ で **装備画面**（`EquipmentMenu`）|
+| 村人 `Villager_Shop` | 近づくと光る → □ で **ショップ**（`ShopMenu`）。位置は自由に動かしてOK |
+| 出撃口 `DepartureGate` | 柵の間などに置く緑の箱（Scene ビューで表示）。入ると **出撃画面**（`QuestMenu`）→ モンスターを選んで「出撃する」→ Battle へ。閉じたら一度外に出るまで反応しない |
+| `HomeHUD` | 右上に所持金、下に「□ 話しかける」などの案内 |
+
+- メニューの操作：✕ / Enter / クリックで決定、〇 / Esc / 右上の × で閉じる
+- 調べられる物を増やす：物に `Interactable` を付け、`On Interact` の ＋ で開きたいメニューの `Open` を登録
+  （近づくと自動で光ります。光り方は `Highlight Color`、届く距離は `Interact Radius`）
+
+### スキル（`Common/Data/SkillData.cs` で値段・倍率を変更）
+| ★ | 倍率 | 値段 |
+|---|---|---|
+| ★1 | 1.05 | 300G |
+| ★2 | 1.10 | 700G |
+| ★3 | 1.20 | 1500G（これで売り切れ）|
+
+- 体力アップ（最大HP）／ 攻撃力アップ（与えるダメージ）／ 防御力アップ（受けるダメージ ÷ 倍率）／ スタミナアップ（最大スタミナ）
+- 効果があるのは**装備画面で付けたスキルだけ**。同時に付けられるのは `GameData.MaxEquippedSkills`（2個）まで。初めて買ったときは空きがあれば自動で付く
+- 回復薬はショップで 100G、10 個まで（それ以上は「所持上限」）
+
+### プレイヤータイプ
+- 装備画面で選んだタイプ（`GameData.SelectedPlayerTypeId`）が、Battle の `PlayerSpawner`（`BattlePlayerSpawner`）で出てきます
+- Battle シーンで `Setup HUD + BattleFlow In Scene` を実行すると `PlayerSpawner` が置かれます
+- 新しいタイプは、`EquipmentMenu` の `Player Types` と `PlayerSpawner` の `Types` に同じ ID で1行ずつ追加
+
+### 出撃（モンスター選択）
+- 出撃画面で選んだボス（`GameData.SelectedBossId`）が、Battle の `BossSpawner`（`BattleBossSpawner`）でシーンのボスと差し替わります
+- Battle シーンで `Setup HUD + BattleFlow In Scene` を実行すると `BossSpawner` が置かれます（空の Prefab 欄には `Prefabs/Boss/Boss_<ID>.prefab` が自動で入る）
+- 新しいボスは、`QuestMenu` の `Quests` と `BossSpawner` の `Bosses` に同じ ID で1行ずつ追加（`Boss Prefab` を入れると報酬金も表示される）
 
 ## ヒットエフェクト（HitEffects）
 シーンの `HitEffects` オブジェクトが、プレイヤー / ボスの `Damaged`・`Guarded` イベントを聞いて演出を出します。
@@ -156,6 +215,7 @@ Mixamo のモーションをそのまま再生すると **上半身が直立し�
 3. □ 長押しで溜め、離すとチャージショット（`Input.AttackHeld` / `Input.AttackReleasedThisFrame`）
 
 - 矢のスクリプト（飛んで、当たったら `IDamageable.ApplyDamage`）も `Types/Bow/` に作ってください
+- 矢のダメージには `AttackMultiplier`（攻撃力アップのスキル倍率）を掛けてください（剣の `WeaponHitbox` は自動で掛かります）
 - 弓のモーション：`Kevin Iglesias/Human Animations/Animations/Male/Combat/Bow/`（Load / Hold / Release）
 - 弓の弦の動き：モデルの `HumanArcherController` の `LoadBow` / `ShootArrow` / `GetArrow`
 - ⚠ `Build PlayerB (Bow) Template` を再実行すると Animator / Prefab が作り直されて、追加した内容が消えます
