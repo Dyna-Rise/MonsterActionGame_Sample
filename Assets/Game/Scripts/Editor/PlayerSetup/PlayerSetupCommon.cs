@@ -369,6 +369,18 @@ namespace MonsterAction.EditorTools
             importer.SaveAndReimport();
         }
 
+        /// <summary>
+        /// Hands レイヤー（武器を握る手の形）を切る。魔法使いのように手を開いて使うタイプ用
+        /// </summary>
+        public static void DisableHandsLayer(AnimatorController ctrl)
+        {
+            var layers = ctrl.layers;
+            for (int i = 0; i < layers.Length; i++)
+                if (layers[i].name == "Hands") layers[i].defaultWeight = 0f;
+            ctrl.layers = layers;
+            EditorUtility.SetDirty(ctrl);
+        }
+
         /// <summary>Kevin Iglesias の Animations フォルダからクリップを読む</summary>
         public static AnimationClip LoadKevinClip(string relativePath) => LoadClipAt($"{KevinAnimRoot}/{relativePath}");
 

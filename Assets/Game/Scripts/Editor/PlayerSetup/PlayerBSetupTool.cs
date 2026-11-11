@@ -17,7 +17,7 @@ namespace MonsterAction.EditorTools
     /// </summary>
     public static class PlayerBSetupTool
     {
-        private const string ModelPrefabPath = PlayerSetupCommon.KevinRoot +
+        public const string ModelPrefabPath = PlayerSetupCommon.KevinRoot +
             "/Unity Demo Scenes/Human Archer Animations/Prefabs/HumanM_Archer.prefab";
 
         public const string ControllerPath = PlayerSetupCommon.AnimatorDir + "/PlayerB_Bow.controller";

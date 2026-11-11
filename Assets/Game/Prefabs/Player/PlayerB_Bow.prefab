@@ -81,6 +81,8 @@ MonoBehaviour:
   sprintActionName: Sprint
   lockOnActionName: LockOn
   focusActionName: Focus
+  useItemActionName: UseItem
+  interactActionName: Interact
   bufferTime: 0.3
 --- !u!114 &6576552724650268553
 MonoBehaviour:
@@ -154,6 +156,12 @@ MonoBehaviour:
     m_Bits: 4294967295
   hitStunDuration: 0.6
   hitInvincibleTime: 0.5
+  quickItem: {fileID: 0}
+  downDuration: 1.6
+  downKnockbackTime: 0.4
+  downMinKnockback: 2
+  downRecoverTime: 0.9
+  getUpDuration: 0.8
   cameraTransform: {fileID: 0}
   animator: {fileID: 0}
 --- !u!1001 &5238430837689212627

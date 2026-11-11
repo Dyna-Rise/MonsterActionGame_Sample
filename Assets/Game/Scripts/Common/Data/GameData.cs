@@ -46,6 +46,7 @@ namespace MonsterAction.Data
         private static readonly HashSet<SkillType> equippedSkills = new HashSet<SkillType>();
         private static string selectedPlayerTypeId = DefaultPlayerTypeId;
         private static string selectedBossId = DefaultBossId;
+        private static int questClearCount;
 
         /// <summary>所持金が変わった（新しい所持金）</summary>
         public static event Action<int> MoneyChanged;
@@ -82,6 +83,7 @@ namespace MonsterAction.Data
             equippedSkills.Clear();
             selectedPlayerTypeId = DefaultPlayerTypeId;
             selectedBossId = DefaultBossId;
+            questClearCount = 0;
         }
 
         // ================================================================
@@ -228,6 +230,65 @@ namespace MonsterAction.Data
                 selectedBossId = value;
                 BossChanged?.Invoke(value);
             }
+        }
+
+        // ================================================================
+        //  記録
+        // ================================================================
+
+        /// <summary>クエストをクリアした回数</summary>
+        public static int QuestClearCount => questClearCount;
+
+        /// <summary>クエストクリア（BattleFlowController が呼ぶ）</summary>
+        public static void AddQuestClear() => questClearCount++;
+
+        // ================================================================
+        //  セーブ / ロード（SaveSystem から使う）
+        // ================================================================
+
+        /// <summary>今の値をセーブ用のデータにする</summary>
+        public static SaveData ToSaveData()
+        {
+            var data = new SaveData
+            {
+                money = money,
+                playerTypeId = selectedPlayerTypeId,
+                bossId = selectedBossId,
+                questClearCount = questClearCount,
+            };
+            foreach (var kv in itemCounts) data.items.Add(new SaveData.ItemCount { id = kv.Key, count = kv.Value });
+            foreach (var kv in skillLevels) data.skills.Add(new SaveData.SkillLevel { skill = kv.Key.ToString(), level = kv.Value });
+            foreach (var s in equippedSkills) data.equippedSkills.Add(s.ToString());
+            return data;
+        }
+
+        /// <summary>セーブデータの値を読み込む（足りない値は初期値のまま）</summary>
+        public static void LoadFromSaveData(SaveData data)
+        {
+            ResetToDefault();
+            if (data == null) return;
+
+            money = Mathf.Max(0, data.money);
+            if (data.items != null)
+            {
+                itemCounts.Clear();
+                foreach (var it in data.items)
+                    if (!string.IsNullOrEmpty(it.id)) itemCounts[it.id] = Mathf.Max(0, it.count);
+            }
+            if (data.skills != null)
+                foreach (var s in data.skills)
+                    if (Enum.TryParse(s.skill, out SkillType type)) skillLevels[type] = Mathf.Clamp(s.level, 0, SkillData.MaxLevel);
+            if (data.equippedSkills != null)
+                foreach (var name in data.equippedSkills)
+                    if (Enum.TryParse(name, out SkillType type) && GetSkillLevel(type) > 0 && equippedSkills.Count < MaxEquippedSkills)
+                        equippedSkills.Add(type);
+            if (!string.IsNullOrEmpty(data.playerTypeId)) selectedPlayerTypeId = data.playerTypeId;
+            if (!string.IsNullOrEmpty(data.bossId)) selectedBossId = data.bossId;
+            questClearCount = Mathf.Max(0, data.questClearCount);
+
+            MoneyChanged?.Invoke(money);
+            PlayerTypeChanged?.Invoke(selectedPlayerTypeId);
+            BossChanged?.Invoke(selectedBossId);
         }
     }
 }

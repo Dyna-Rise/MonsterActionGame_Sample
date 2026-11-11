@@ -27,6 +27,7 @@ namespace MonsterAction.Battle.Player
         {
             new Entry { typeId = "SwordShield" },
             new Entry { typeId = "Bow" },
+            new Entry { typeId = "Magic" },
         };
 
         private void Awake()

@@ -646,7 +646,9 @@ MonoBehaviour:
   - typeId: SwordShield
     prefab: {fileID: 2913509095495811990, guid: 68085c3755050c14c96af57270f96864, type: 3}
   - typeId: Bow
-    prefab: {fileID: 8529482491658978536, guid: a967b64b836b0e145aa22a3b0b541dc5, type: 3}
+    prefab: {fileID: 8114899041276640492, guid: f4b3465af693b7c489bf201ca40335cf, type: 3}
+  - typeId: Magic
+    prefab: {fileID: 5081195471729958302, guid: fe8a37af6fadbaf4890c614ec60001a3, type: 3}
 --- !u!4 &694341830
 Transform:
   m_ObjectHideFlags: 0

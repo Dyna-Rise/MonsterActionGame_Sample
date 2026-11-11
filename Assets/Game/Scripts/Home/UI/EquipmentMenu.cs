@@ -31,6 +31,7 @@ namespace MonsterAction.Home.UI
         {
             new PlayerTypeOption { id = "SwordShield", displayName = "片手剣", description = "□ 連続攻撃 / □長押し ガード。\n攻守のバランスがよい。" },
             new PlayerTypeOption { id = "Bow", displayName = "弓", description = "□ 矢を撃つ / □長押し 溜め撃ち / L1 で狙う。\n離れて戦う。" },
+            new PlayerTypeOption { id = "Magic", displayName = "魔法", description = "□ 魔法の弾を撃つ / □長押し 溜めて周りに範囲攻撃 / L1 で狙う。\n離れて戦う。" },
         };
 
         [Tooltip("「スキル 1 / 2」のような枠の表示")]

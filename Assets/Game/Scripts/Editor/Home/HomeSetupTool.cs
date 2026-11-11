@@ -55,6 +55,7 @@ namespace MonsterAction.EditorTools
         private const string ShopPrefabPath = UIPrefabDir + "/ShopMenu.prefab";
         private const string EquipmentPrefabPath = UIPrefabDir + "/EquipmentMenu.prefab";
         private const string QuestPrefabPath = UIPrefabDir + "/QuestMenu.prefab";
+        private const string PausePrefabPath = UIPrefabDir + "/HomePauseMenu.prefab";
 
         // ================================================================
         //  メニュー
@@ -73,6 +74,8 @@ namespace MonsterAction.EditorTools
             var shopPrefab = LoadOrBuild(ShopPrefabPath, () => BuildMenuPrefab<ShopMenu>("ShopMenu", "ショップ", false));
             var equipPrefab = LoadOrBuild(EquipmentPrefabPath, () => BuildMenuPrefab<EquipmentMenu>("EquipmentMenu", "装備・タイプ選択", true));
             var questPrefab = LoadOrBuild(QuestPrefabPath, () => BuildMenuPrefab<QuestMenu>("QuestMenu", "出撃（モンスター選択）", false));
+            var pausePrefab = LoadOrBuild(PausePrefabPath, () => BuildMenuPrefab<HomePauseMenu>("HomePauseMenu", "メニュー", false));
+            EnsurePlayerTypeOptions(equipPrefab);
 
             EnsureEventSystem();
             var player = EnsurePlayer(playerPrefab);
@@ -81,6 +84,7 @@ namespace MonsterAction.EditorTools
             var shop = EnsureInstance<ShopMenu>(shopPrefab);
             var equip = EnsureInstance<EquipmentMenu>(equipPrefab);
             var quest = EnsureInstance<QuestMenu>(questPrefab);
+            EnsureInstance<HomePauseMenu>(pausePrefab);
             FillQuestBossPrefabs(quest);
 
             SetupDoor(equip, highlight);
@@ -99,7 +103,7 @@ namespace MonsterAction.EditorTools
         [MenuItem(MenuRoot + "Rebuild Home Prefabs (Player / Villagers / UI)", priority = 20)]
         public static void RebuildPrefabsMenu()
         {
-            var paths = new[] { PlayerPrefabPath, VillagerPrefabPath, HUDPrefabPath, ShopPrefabPath, EquipmentPrefabPath, QuestPrefabPath };
+            var paths = new[] { PlayerPrefabPath, VillagerPrefabPath, HUDPrefabPath, ShopPrefabPath, EquipmentPrefabPath, QuestPrefabPath, PausePrefabPath };
             if (!PlayerSetupCommon.ConfirmOverwrite(paths)) return;
             var highlight = EnsureHighlightMaterial();
             BuildPlayerPrefab();
@@ -108,6 +112,7 @@ namespace MonsterAction.EditorTools
             BuildMenuPrefab<ShopMenu>("ShopMenu", "ショップ", false);
             BuildMenuPrefab<EquipmentMenu>("EquipmentMenu", "装備・タイプ選択", true);
             BuildMenuPrefab<QuestMenu>("QuestMenu", "出撃（モンスター選択）", false);
+            BuildMenuPrefab<HomePauseMenu>("HomePauseMenu", "メニュー", false);
             Debug.Log("[HomeSetup] Prefab を作り直しました。シーンに置いてある分は自動で更新されます（シーンで変えた値は残る）。");
         }
 
@@ -122,7 +127,7 @@ namespace MonsterAction.EditorTools
             return prefab != null ? prefab : build();
         }
 
-        private static void EnsureEventSystem()
+        internal static void EnsureEventSystem()
         {
             var es = Object.FindFirstObjectByType<EventSystem>();
             if (es == null)
@@ -206,6 +211,40 @@ namespace MonsterAction.EditorTools
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             Undo.RegisterCreatedObjectUndo(go, "Place " + prefab.name);
             return go.GetComponent<T>();
+        }
+
+        /// <summary>装備画面のタイプ一覧に、後から増えたタイプ（魔法など）を足す（Prefab に保存）</summary>
+        private static void EnsurePlayerTypeOptions(GameObject equipPrefab)
+        {
+            var menu = equipPrefab != null ? equipPrefab.GetComponent<EquipmentMenu>() : null;
+            if (menu == null) return;
+            var so = new SerializedObject(menu);
+            var list = so.FindProperty("playerTypes");
+            var defaults = new (string id, string name, string desc)[]
+            {
+                ("SwordShield", "片手剣", "□ 連続攻撃 / □長押し ガード。\n攻守のバランスがよい。"),
+                ("Bow", "弓", "□ 矢を撃つ / □長押し 溜め撃ち / L1 で狙う。\n離れて戦う。"),
+                ("Magic", "魔法", "□ 魔法の弾を撃つ / □長押し 溜めて周りに範囲攻撃 / L1 で狙う。\n離れて戦う。"),
+            };
+            bool changed = false;
+            foreach (var d in defaults)
+            {
+                bool found = false;
+                for (int i = 0; i < list.arraySize; i++)
+                    if (list.GetArrayElementAtIndex(i).FindPropertyRelative("id").stringValue == d.id) found = true;
+                if (found) continue;
+                list.InsertArrayElementAtIndex(list.arraySize);
+                var e = list.GetArrayElementAtIndex(list.arraySize - 1);
+                e.FindPropertyRelative("id").stringValue = d.id;
+                e.FindPropertyRelative("displayName").stringValue = d.name;
+                e.FindPropertyRelative("description").stringValue = d.desc;
+                changed = true;
+            }
+            if (!changed) return;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(equipPrefab);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[HomeSetup] 装備画面のタイプ一覧に新しいタイプを追加しました");
         }
 
         /// <summary>出撃画面の一覧で Boss Prefab が空なら、Prefabs/Boss/Boss_<ID>.prefab を入れる（報酬金の表示用）</summary>
@@ -499,15 +538,15 @@ namespace MonsterAction.EditorTools
         //  UI
         // ================================================================
 
-        private static readonly Color WindowColor = new Color(0.07f, 0.09f, 0.13f, 0.96f);
-        private static readonly Color DimColor = new Color(0f, 0f, 0f, 0.55f);
-        private static readonly Color HeaderColor = new Color(1f, 0.82f, 0.35f);
-        private static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.35f);
+        internal static readonly Color WindowColor = new Color(0.07f, 0.09f, 0.13f, 0.96f);
+        internal static readonly Color DimColor = new Color(0f, 0f, 0f, 0.55f);
+        internal static readonly Color HeaderColor = new Color(1f, 0.82f, 0.35f);
+        internal static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.35f);
 
         private static Font DefaultFont => Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         private static Sprite DefaultSprite => AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
 
-        private static GameObject CreateCanvas(string name, int sortingOrder)
+        internal static GameObject CreateCanvas(string name, int sortingOrder)
         {
             var root = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             root.layer = LayerMask.NameToLayer("UI");
@@ -618,11 +657,12 @@ namespace MonsterAction.EditorTools
 
             string path = typeof(T) == typeof(ShopMenu) ? ShopPrefabPath
                         : typeof(T) == typeof(QuestMenu) ? QuestPrefabPath
+                        : typeof(T) == typeof(HomePauseMenu) ? PausePrefabPath
                         : EquipmentPrefabPath;
             return SavePrefab(root, path);
         }
 
-        private static MenuRow BuildRowTemplate(Transform parent)
+        internal static MenuRow BuildRowTemplate(Transform parent)
         {
             var bg = Img("RowTemplate", parent, new Vector2(0f, 1f), Vector2.zero, new Vector2(700f, 58f), Color.white);
             bg.raycastTarget = true;
@@ -655,7 +695,7 @@ namespace MonsterAction.EditorTools
         // ---- 小さな部品 ----
 
         /// <summary>anchor の位置を基準に置く（pivot も anchor と同じにする）</summary>
-        private static void Place(RectTransform rt, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size)
+        internal static void Place(RectTransform rt, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size)
         {
             rt.SetParent(parent, false);
             rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
@@ -663,14 +703,14 @@ namespace MonsterAction.EditorTools
             rt.sizeDelta = size;
         }
 
-        private static void Stretch(RectTransform rt)
+        internal static void Stretch(RectTransform rt)
         {
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
-        private static Image Img(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Color color)
+        internal static Image Img(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.layer = LayerMask.NameToLayer("UI");
@@ -683,7 +723,7 @@ namespace MonsterAction.EditorTools
             return img;
         }
 
-        private static Text Txt(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize,
+        internal static Text Txt(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize,
                                 string text, TextAnchor alignment)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));

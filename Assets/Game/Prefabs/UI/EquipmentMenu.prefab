@@ -986,6 +986,10 @@ MonoBehaviour:
     displayName: "\u5F13"
     description: "\u25A1 \u77E2\u3092\u6483\u3064 / \u25A1\u9577\u62BC\u3057 \u6E9C\u3081\u6483\u3061
       / L1 \u3067\u72D9\u3046\u3002\n\u96E2\u308C\u3066\u6226\u3046\u3002"
+  - id: Magic
+    displayName: "\u9B54\u6CD5"
+    description: "\u25A1 \u9B54\u6CD5\u306E\u5F3E\u3092\u6483\u3064 / \u25A1\u9577\u62BC\u3057
+      \u6E9C\u3081\u3066\u5468\u308A\u306B\u7BC4\u56F2\u653B\u6483 / L1 \u3067\u72D9\u3046\u3002\n\u96E2\u308C\u3066\u6226\u3046\u3002"
   slotText: {fileID: 7752270880614773518}
 --- !u!1 &4481966012267417493
 GameObject:

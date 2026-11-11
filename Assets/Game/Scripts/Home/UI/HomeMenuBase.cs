@@ -43,6 +43,9 @@ namespace MonsterAction.Home.UI
 
         public bool IsOpen => panel != null && panel.activeSelf;
 
+        /// <summary>最後にメニューが閉じたフレーム（Esc で閉じた同じフレームに別のメニューが開かないように）</summary>
+        protected static int LastClosedFrame { get; private set; } = -1;
+
         /// <summary>false の間は閉じられない（出撃中など）</summary>
         protected virtual bool CanClose => true;
 
@@ -78,8 +81,12 @@ namespace MonsterAction.Home.UI
             if (!IsOpen || !CanClose) return;
             panel.SetActive(false);
             if (Current == this) Current = null;
+            LastClosedFrame = Time.frameCount;
             SetGameplayPaused(false);
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+
+            // 自動セーブ（買い物・装備の変更を保存。タイトルを通していなければ何もしない）
+            MonsterAction.Data.SaveSystem.AutoSave();
         }
 
         /// <summary>行を作る（開いたときに1回呼ばれる）。CreateHeader / CreateRow を使う</summary>

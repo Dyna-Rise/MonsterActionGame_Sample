@@ -80,6 +80,8 @@ namespace MonsterAction.Home.Player
         private void Start()
         {
             if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
+            // Home に来たら自動セーブ（クエストの報酬などを保存。タイトルを通していなければ何もしない）
+            MonsterAction.Data.SaveSystem.AutoSave();
         }
 
         private void Update()

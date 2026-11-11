@@ -110,6 +110,20 @@ GameData.TryBuySkill(type)       // ★を1つ上げる（お金不足 / 売り�
 - Battle シーンで `Setup HUD + BattleFlow In Scene` を実行すると `BossSpawner` が置かれます（空の Prefab 欄には `Prefabs/Boss/Boss_<ID>.prefab` が自動で入る）
 - 新しいボスは、`QuestMenu` の `Quests` と `BossSpawner` の `Bosses` に同じ ID で1行ずつ追加（`Boss Prefab` を入れると報酬金も表示される）
 
+## タイトルとセーブ / ロード
+| やること | メニュー |
+|---|---|
+| タイトルシーンを作る（`Assets/Scenes/Title.unity`、ビルドの先頭に入れる） | `MonsterAction > Title > Setup Title Scene` |
+| Home にメニュー（セーブ・タイトルへ）を置く | `MonsterAction > Home > Setup Home Scene` |
+
+- タイトル：PRESS ANY BUTTON → **はじめから**（スロットを選ぶ。データがあるスロットは、もう一度決定で上書き）/ **つづきから** / ゲーム終了
+- スロットは3つ。`Application.persistentDataPath/save_0.json`〜`save_2.json`（JSON）
+- 保存されるもの：所持金・アイテム・スキルの★と装備・プレイヤータイプ・出撃先のボス・クリア回数・プレイ時間（`SaveData`）
+- **自動セーブ**：Home に来たとき（クエストから戻ったとき）、ショップ・装備などのメニューを閉じたとき
+- Home で **Esc / OPTIONS** → メニュー（セーブする / タイトルへ戻る / 閉じる）
+- Home / Battle を直接 Play したとき（タイトルを通していない）はセーブされません（テスト中に本物のデータを上書きしないため）
+- 保存する値を増やすとき：`SaveData` にフィールドを足し、`GameData.ToSaveData` / `LoadFromSaveData` に書き足す
+
 ## ヒットエフェクト（HitEffects）
 シーンの `HitEffects` オブジェクトが、プレイヤー / ボスの `Damaged`・`Guarded` イベントを聞いて演出を出します。
 | 当たったとき | 演出 |
@@ -151,6 +165,12 @@ Battle/
         AttackStep.cs
       Bow/                ← タイプB：弓（★ 弓担当の作業場所）
         PlayerTypeB_Bow.cs
+      Magic/              ← タイプC：魔法使い（★ 魔法担当の作業場所）
+        PlayerTypeC_Magic.cs
+    Samples/              ← 見本（先生用。弓・魔法の答えの一例）
+      Common/PlayerProjectile.cs  矢・火球
+      Bow/PlayerSampleB_Bow.cs
+      Magic/PlayerSampleC_Magic.cs
   Camera/BattleCameraController.cs   通常 / ターゲット / 集中 の3モード
   UI/
     PlayerStatusHUD.cs               HP・スタミナ・照準・ロックオンマーカー
@@ -165,6 +185,8 @@ Editor/
     PlayerSetupCommon.cs   共通の Animator / Prefab / シーン配置
     PlayerASetupTool.cs    片手剣だけの設定
     PlayerBSetupTool.cs    弓の雛形
+    PlayerCSetupTool.cs    魔法の雛形
+    Samples/PlayerSamplesSetupTool.cs  弓・魔法の見本（先生用）
   UI/BattleHUDBuilder.cs   HUD プレハブの生成
 ```
 生成物：`Assets/Game/Animations/Player/`、`Assets/Game/Prefabs/Player/`、`Assets/Game/Prefabs/UI/`
@@ -219,6 +241,34 @@ Mixamo のモーションをそのまま再生すると **上半身が直立し�
 - 弓のモーション：`Kevin Iglesias/Human Animations/Animations/Male/Combat/Bow/`（Load / Hold / Release）
 - 弓の弦の動き：モデルの `HumanArcherController` の `LoadBow` / `ShootArrow` / `GetArrow`
 - ⚠ `Build PlayerB (Bow) Template` を再実行すると Animator / Prefab が作り直されて、追加した内容が消えます
+
+### 魔法（Player タイプ）担当
+**作業するのは `Types/Magic/` と `PlayerC_Magic.controller` / `PlayerC_Magic.prefab` だけです。**
+（雛形は `MonsterAction > Player > Build PlayerC (Magic) Template` で作れます）
+
+課題（`PlayerTypeC_Magic.cs` の先頭に詳しい仕様とヒントがあります）
+1. □ で前方に魔法の弾（火球など）を撃つ
+2. L1 集中モード中の □ で、照準の方向へ撃つ（`GetAimDirection(発射位置)`）
+3. □ 長押しで溜め、離すと自分の周りに範囲攻撃（`Physics.OverlapSphere`）
+
+- 弾・範囲攻撃のダメージには `AttackMultiplier` を掛けてください
+- 詠唱のモーション：`Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/`（Directional / Omnidirectional / Call、それぞれ Load / Cast あり）
+- エフェクト：`Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/`（Fireball・Shockwave_Explosion・SpellAura_* など）
+- ⚠ `Build PlayerC (Magic) Template` を再実行すると Animator / Prefab が作り直されて、追加した内容が消えます
+
+### 見本（先生用）：弓・魔法
+`MonsterAction > Player > Samples > Build PlayerB Sample (Bow)` / `Build PlayerC Sample (Magic)` で、課題の答えの一例を作れます。
+生成物は `Prefabs/Player/Samples/` と `Animations/Player/Samples/`、スクリプトは `Battle/Player/Samples/`。
+
+| 見本 | 操作 |
+|---|---|
+| 弓 `PlayerSampleB_Bow` | □ 押す → 引いてすぐ放つ / □ 長押し → 構えて溜め（スタミナ消費、3段階。3段階目は3本の扇撃ち）/ 離す → 放つ / 撃った後すぐ □ で連射 |
+| 魔法 `PlayerSampleC_Magic` | □ 押す → 火球（続けて押すと右手・左手で連射）/ □ 長押し → 足元に魔法陣で溜め（スタミナ消費、3段階）/ 離す → 周りに衝撃波（3段階目はボスがひるむ） |
+
+- どちらも L1 集中中は照準へ、ロックオン中はターゲットへ撃ちます。溜め中・撃った後は回避でキャンセル可
+- 飛び道具は共通の `PlayerProjectile`（SphereCast で当たり判定、ボスの部位を優先、矢は刺さって残る）
+- Battle の `PlayerSpawner` は、見本の Prefab があれば見本を、無ければ雛形を使います（`Setup HUD + BattleFlow In Scene` で設定。自分で入れた Prefab は変えません）
+- 見本は生徒に配らない想定です（ボスの見本と同じ扱い）
 
 ### 新しいタイプを増やすとき
 1. `PlayerBattleController` を継承したクラスを `Types/<タイプ名>/` に作る（`TryStartAction()` と `UpdateAction()` を実装）

@@ -29,8 +29,8 @@ namespace MonsterAction.EditorTools
     public static class BattleHUDBuilder
     {
         public const string PrefabPath = "Assets/Game/Prefabs/UI/BattleHUD.prefab";
-        private const string BattleScenePath = "Assets/Scenes/Battle.unity";
-        private const string HomeScenePath = "Assets/Scenes/Home.unity";
+        public const string BattleScenePath = "Assets/Scenes/Battle.unity";
+        public const string HomeScenePath = "Assets/Scenes/Home.unity";
 
         private static readonly Color BackColor = new Color(0f, 0f, 0f, 0.6f);
         private static readonly Color HpColor = new Color(0.3f, 0.85f, 0.35f);
@@ -149,21 +149,57 @@ namespace MonsterAction.EditorTools
                 spawner = go.GetComponent<MonsterAction.Battle.Player.BattlePlayerSpawner>();
             }
 
-            // 一覧の Prefab が空なら、作ってある Player の Prefab を入れる
+            FillPlayerSpawner(spawner);
+        }
+
+        /// <summary>
+        /// PlayerSpawner の一覧を最新にする（タイプを足す・Prefab を入れる）。
+        /// 見本（先生用）があれば見本、無ければ課題の雛形。自分で入れた Prefab の欄は変えない
+        /// </summary>
+        public static void FillPlayerSpawner(MonsterAction.Battle.Player.BattlePlayerSpawner spawner)
+        {
+            // 一覧に無いタイプを足す
             var so = new SerializedObject(spawner);
             var types = so.FindProperty("types");
+            foreach (var id in new[] { "SwordShield", "Bow", "Magic" })
+            {
+                bool found = false;
+                for (int i = 0; i < types.arraySize; i++)
+                    if (types.GetArrayElementAtIndex(i).FindPropertyRelative("typeId").stringValue == id) found = true;
+                if (found) continue;
+                types.InsertArrayElementAtIndex(types.arraySize);
+                var added = types.GetArrayElementAtIndex(types.arraySize - 1);
+                added.FindPropertyRelative("typeId").stringValue = id;
+                added.FindPropertyRelative("prefab").objectReferenceValue = null;
+            }
+
+            // Prefab を入れる：見本（先生用）があれば見本、無ければ課題の雛形。
+            // 空の欄と、雛形が入っている欄だけ変える（自分で作った Prefab を入れた欄はそのまま）
             for (int i = 0; i < types.arraySize; i++)
             {
                 var e = types.GetArrayElementAtIndex(i);
                 var prefabProp = e.FindPropertyRelative("prefab");
-                if (prefabProp.objectReferenceValue != null) continue;
-                string path = e.FindPropertyRelative("typeId").stringValue switch
+                string id = e.FindPropertyRelative("typeId").stringValue;
+                string template = id switch
                 {
                     "SwordShield" => PlayerASetupTool.PrefabPath,
                     "Bow" => PlayerBSetupTool.PrefabPath,
+                    "Magic" => PlayerCSetupTool.PrefabPath,
                     _ => null,
                 };
-                if (path != null) prefabProp.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                string sample = id switch
+                {
+                    "Bow" => PlayerSamplesSetupTool.BowPrefabPath,
+                    "Magic" => PlayerSamplesSetupTool.MagicPrefabPath,
+                    _ => null,
+                };
+                var templatePrefab = template != null ? AssetDatabase.LoadAssetAtPath<GameObject>(template) : null;
+                var samplePrefab = sample != null ? AssetDatabase.LoadAssetAtPath<GameObject>(sample) : null;
+
+                var current = prefabProp.objectReferenceValue;
+                if (current != null && current != templatePrefab) continue;
+                var pick = samplePrefab != null ? samplePrefab : templatePrefab;
+                if (pick != null) prefabProp.objectReferenceValue = pick;
             }
             so.ApplyModifiedProperties();
         }

@@ -103,6 +103,7 @@ namespace MonsterAction.Battle.Flow
             // 報酬金を所持金に足す（Home に戻っても残る）
             EarnedReward = reward >= 0 ? reward : (Boss.BossBase.Active != null ? Boss.BossBase.Active.RewardMoney : 0);
             GameData.AddMoney(EarnedReward);
+            GameData.AddQuestClear();
 
             QuestCleared?.Invoke();
             StartCoroutine(EndRoutine(cleared: true));
